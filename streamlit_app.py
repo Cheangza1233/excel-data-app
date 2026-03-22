@@ -93,3 +93,43 @@ if uploaded_files:
             t1, t2, t3 = st.tabs(["📉 กราฟวิเคราะห์", "🔍 เจาะลึกตาราง", "📥 ดาวน์โหลด"])
 
             with t1:
+                    st.subheader("Visual Analysis")
+                c1, c2 = st.columns([1, 1])
+                
+                with c1:
+                    target_x = st.selectbox("เลือกแกน X:", combined_df.columns, key="x_axis")
+                    target_y = st.selectbox("เลือกแกน Y (ตัวเลข):", num_cols if len(num_cols)>0 else combined_df.columns, key="y_axis")
+                    fig_bar = px.bar(final_df, x=target_x, y=target_y, color=target_x, title=f"กราฟแท่งเปรียบเทียบ {target_y}")
+                    st.plotly_chart(fig_bar, use_container_width=True)
+
+                with c2:
+                    fig_pie = px.pie(final_df, names=target_x, title=f"สัดส่วนของ {target_x}")
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+            with t2:
+                st.subheader("Data Explorer")
+                st.dataframe(final_df, use_container_width=True, height=400)
+
+            with t3:
+                st.subheader("Export Data")
+                st.info("คุณสามารถบันทึกข้อมูลที่ผ่านการรวมและกรองเรียบร้อยแล้วไปใช้ต่อได้ที่นี่")
+                csv = final_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="💾 ดาวน์โหลดเป็นไฟล์ CSV",
+                    data=csv,
+                    file_name='clean_data_export.csv',
+                    mime='text/csv',
+                )
+        
+            st.toast("อัปเดตข้อมูลเรียบร้อยแล้ว!", icon='✅')
+
+else:
+    # หน้าจอ Welcome เมื่อยังไม่ได้ลงไฟล์
+    st.empty()
+    st.markdown("""
+        <div style="text-align: center; padding: 100px;">
+            <h1 style="font-size: 70px;">📤</h1>
+            <h2>ยินดีต้อนรับสู่ Smart Data Master</h2>
+            <p>กรุณาอัปโหลดไฟล์ที่แถบด้านข้างเพื่อเริ่มสร้าง Dashboard ของคุณ</p>
+        </div>
+    """, unsafe_allow_status=True)
