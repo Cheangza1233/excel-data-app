@@ -2,121 +2,86 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- 1. UI Configuration (หน้าตาแอป) ---
+# --- 1. UI Configuration ---
 st.set_page_config(page_title="DataMaster Pro", page_icon="💎", layout="wide")
 
-# --- 2. Custom CSS (หัวใจของความสวยงาม) ---
+# Custom CSS
 st.markdown("""
     <style>
-    /* ปรับแต่งฟอนต์และพื้นหลังหลัก */
     @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap');
-    
-    html, body, [class*="css"]  {
-        font-family: 'Kanit', sans-serif;
-    }
-    
-    .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-
-    /* ปรับแต่ง Sidebar ให้ดูหรูหรา */
-    [data-testid="stSidebar"] {
-        background-color: #0f172a;
-        border-right: 1px solid rgba(255,255,255,0.1);
-    }
-    [data-testid="stSidebar"] * {
-        color: #f8fafc !important;
-    }
-
-    /* สไตล์การ์ดตัวเลข (Metrics) */
+    html, body, [class*="css"] { font-family: 'Kanit', sans-serif; }
+    .stApp { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+    [data-testid="stSidebar"] { background-color: #0f172a; color: white; }
     div[data-testid="metric-container"] {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 25px;
-        border-radius: 20px;
+        background: white; padding: 25px; border-radius: 20px;
         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        transition: transform 0.3s ease;
-    }
-    div[data-testid="metric-container"]:hover {
-        transform: translateY(-5px);
-    }
-
-    /* ปรับแต่งปุ่มและ Input */
-    .stButton>button {
-        background: linear-gradient(45deg, #3b82f6, #2563eb);
-        color: white;
-        border-radius: 12px;
-        border: none;
-        padding: 10px 25px;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-    .stButton>button:hover {
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        transform: scale(1.02);
-    }
-
-    /* ปรับแต่ง Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 20px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: white;
-        border-radius: 12px;
-        padding: 0 20px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. ระบบความปลอดภัย (Login System) ---
-def check_password():
-    def password_entered():
-        if st.session_state["password"] == "admin123": # <--- แก้รหัสผ่านที่นี่
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]
-        else:
-            st.session_state["password_correct"] = False
+# --- 2. Login System ---
+if "auth" not in st.session_state:
+    st.session_state.auth = False
 
-    if "password_correct" not in st.session_state:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.markdown("<div style='text-align: center; padding: 50px; background: white; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);'>", unsafe_allow_html=True)
-            st.image("https://cdn-icons-png.flaticon.com/512/6195/6195700.png", width=100)
-            st.header("ยินดีต้อนรับกลับมา")
-            st.text_input("กรุณาใส่รหัสผ่าน", type="password", on_change=password_entered, key="password")
-            st.markdown("</div>", unsafe_allow_html=True)
-        return False
-    elif not st.session_state["password_correct"]:
-        st.error("❌ รหัสผ่านไม่ถูกต้อง")
-        return False
-    return True
-
-if not check_password():
+if not st.session_state.auth:
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with col2 := c2:
+        st.markdown("<div style='text-align: center; padding: 50px; background: white; border-radius: 30px;'>", unsafe_allow_html=True)
+        st.header("💎 เข้าสู่ระบบ")
+        pw = st.text_input("รหัสผ่าน", type="password")
+        if st.button("ตกลง"):
+            if pw == "admin123": # <--- แก้รหัสผ่านที่นี่
+                st.session_state.auth = True
+                st.rerun()
+            else:
+                st.error("รหัสผ่านผิด")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# --- 4. Main Application (เมื่อ Login ผ่านแล้ว) ---
-
-# ส่วนหัว (Header)
-c_head1, c_head2 = st.columns([4, 1])
-with c_head1:
-    st.title("💎 DataMaster Intelligence")
-    st.markdown("<p style='font-size: 1.2rem; color: #64748b;'>ระบบจัดการและวิเคราะห์ข้อมูลอัจฉริยะ</p>", unsafe_allow_html=True)
-
-# Sidebar
-st.sidebar.markdown("### 🛠️ เครื่องมือจัดการ")
-gsheet_url = st.sidebar.text_input("🔗 เชื่อม Google Sheets:")
-uploaded_files = st.sidebar.file_uploader("📤 อัปโหลดไฟล์โดยตรง", accept_multiple_files=True)
+# --- 3. Main Application ---
+st.title("💎 DataMaster Intelligence")
+st.sidebar.markdown("### 🛠️ จัดการข้อมูล")
+gsheet_url = st.sidebar.text_input("🔗 ลิงก์ Google Sheets:")
+files = st.sidebar.file_uploader("📤 อัปโหลดไฟล์", accept_multiple_files=True)
 
 all_data = []
 
-# ดึงข้อมูล (Logic เดิมที่ทำงานได้ดีอยู่แล้ว)
+# ดึงข้อมูล Google Sheets
 if gsheet_url:
     try:
-        sheet_id = gsheet_url.split("/d/")[1].split("/")[0]
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
-        df_gs = pd.read_csv(url)
-        df_gs = df_gs.loc[:, ~df_gs.columns.str.contains
+        s_id = gsheet_url.split("/d/")[1].split("/")[0]
+        u = f"https://docs.google.com/spreadsheets/d/{s_id}/export?format=csv"
+        df_g = pd.read_csv(u)
+        all_data.append(df_g)
+    except:
+        st.sidebar.error("ลิงก์ Sheets ผิด")
+
+# ดึงข้อมูลไฟล์อัปโหลด
+if files:
+    for f in files:
+        df = pd.read_excel(f) if f.name.endswith('.xlsx') else pd.read_csv(f)
+        all_data.append(df)
+
+if all_data:
+    df_final = pd.concat(all_data, ignore_index=True)
+    # Clean คอลัมน์ Unnamed
+    df_final = df_final.loc[:, ~df_final.columns.str.contains('^Unnamed')]
+    
+    # Dashboard
+    m1, m2, m3 = st.columns(3)
+    m1.metric("📦 ทั้งหมด", f"{len(df_final):,}")
+    nums = df_final.select_dtypes(include=['number']).columns
+    if len(nums) > 0:
+        m2.metric(f"💰 ยอดรวม ({nums[0]})", f"{df_final[nums[0]].sum():,.0f}")
+        m3.metric("📈 ค่าเฉลี่ย", f"{df_final[nums[0]].mean():,.2f}")
+
+    t1, t2 = st.tabs(["✨ กราฟวิเคราะห์", "🔍 ตารางข้อมูล"])
+    with t1:
+        x = st.selectbox("แกน X", df_final.columns)
+        y = st.selectbox("แกน Y", nums if len(nums)>0 else df_final.columns)
+        st.plotly_chart(px.bar(df_final, x=x, y=y, color=x, template="plotly_white"), use_container_width=True)
+    with t2:
+        st.dataframe(df_final, use_container_width=True)
+        st.download_button("📥 โหลด CSV", data=df_final.to_csv(index=False).encode('utf-8'), file_name='data.csv')
+else:
+    st.info("👈 กรุณาเพิ่มข้อมูลที่เมนูด้านซ้าย")
