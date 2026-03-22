@@ -5,7 +5,7 @@ import plotly.express as px
 # --- 1. UI Configuration ---
 st.set_page_config(page_title="DataMaster Pro", page_icon="💎", layout="wide")
 
-# Custom CSS เพื่อความสวยงาม
+# Custom CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap');
@@ -25,12 +25,12 @@ if "auth" not in st.session_state:
 
 if not st.session_state.auth:
     c1, c2, c3 = st.columns([1, 2, 1])
-    with c2: # แก้ไขจุดนี้: ใช้ with c2 แทน col2 := c2
+    with c2:
         st.markdown("<div style='text-align: center; padding: 50px; background: white; border-radius: 30px;'>", unsafe_allow_html=True)
         st.header("💎 เข้าสู่ระบบ")
         pw = st.text_input("รหัสผ่าน", type="password")
         if st.button("ตกลง"):
-            if pw == "1111": # <--- แก้รหัสผ่านที่นี่
+            if pw == "admin123": 
                 st.session_state.auth = True
                 st.rerun()
             else:
@@ -46,7 +46,6 @@ files = st.sidebar.file_uploader("📤 อัปโหลดไฟล์", accep
 
 all_data = []
 
-# ดึงข้อมูลจาก Google Sheets
 if gsheet_url:
     try:
         s_id = gsheet_url.split("/d/")[1].split("/")[0]
@@ -56,7 +55,6 @@ if gsheet_url:
     except:
         st.sidebar.error("ลิงก์ Sheets ผิด")
 
-# ดึงข้อมูลจากไฟล์อัปโหลด
 if files:
     for f in files:
         df = pd.read_excel(f) if f.name.endswith('.xlsx') else pd.read_csv(f)
@@ -64,10 +62,8 @@ if files:
 
 if all_data:
     df_final = pd.concat(all_data, ignore_index=True)
-    # ลบคอลัมน์ Unnamed
     df_final = df_final.loc[:, ~df_final.columns.str.contains('^Unnamed')]
     
-    # Dashboard Cards
     m1, m2, m3 = st.columns(3)
     m1.metric("📦 ทั้งหมด", f"{len(df_final):,}")
     nums = df_final.select_dtypes(include=['number']).columns
@@ -75,13 +71,18 @@ if all_data:
         m2.metric(f"💰 ยอดรวม ({nums[0]})", f"{df_final[nums[0]].sum():,.0f}")
         m3.metric("📈 ค่าเฉลี่ย", f"{df_final[nums[0]].mean():,.2f}")
 
-    # Tabs
     t1, t2 = st.tabs(["✨ กราฟวิเคราะห์", "🔍 ตารางข้อมูล"])
     with t1:
         col_g1, col_g2 = st.columns(2)
         with col_g1:
-            x = st.selectbox("แกน X", df_final.columns)
-            y = st.selectbox("แกน Y", nums if len(nums)>0 else df_final.columns)
-            st.plotly_chart(px.bar(df_final, x=x, y=y, color=x, template="plotly_white"), use_container_width=True)
+            x_ax = st.selectbox("แกน X", df_final.columns)
+            y_ax = st.selectbox("แกน Y", nums if len(nums)>0 else df_final.columns)
+            # แก้ไขจาก st.plotly เป็น st.plotly_chart เรียบร้อยครับ
+            st.plotly_chart(px.bar(df_final, x=x_ax, y=y_ax, color=x_ax, template="plotly_white"), use_container_width=True)
         with col_g2:
-            st.plotly
+            st.plotly_chart(px.pie(df_final, names=x_ax, hole=0.4), use_container_width=True)
+    with t2:
+        st.dataframe(df_final, use_container_width=True)
+        st.download_button("📥 โหลด CSV", data=df_final.to_csv(index=False).encode('utf-8'), file_name='data.csv')
+else:
+    st.info("👈 กรุณาเพิ่มข้อมูลที่เมนูด้านซ้าย (รหัสผ่านคือ admin123)")
