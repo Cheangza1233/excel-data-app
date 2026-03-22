@@ -30,7 +30,7 @@ if not st.session_state.auth:
         st.header("💎 เข้าสู่ระบบ")
         pw = st.text_input("รหัสผ่าน", type="password")
         if st.button("ตกลง"):
-            if pw == "admin123": # <--- แก้รหัสผ่านที่นี่
+            if pw == "1111": # <--- แก้รหัสผ่านที่นี่
                 st.session_state.auth = True
                 st.rerun()
             else:
