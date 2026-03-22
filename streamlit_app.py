@@ -3,13 +3,8 @@ import pandas as pd
 import plotly.express as px
 
 # --- 1. UI Configuration ---
-st.set_page_config(
-    page_title="DataMaster Admin",
-    page_icon="📊",
-    layout="wide",
-)
+st.set_page_config(page_title="DataMaster Admin", page_icon="📊", layout="wide")
 
-# Custom CSS สำหรับ Admin Style
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f6; }
@@ -23,7 +18,7 @@ st.markdown("""
 
 # --- 2. Header ---
 st.title("📊 DataMaster Admin Panel")
-st.write("ระบบรวมข้อมูลและวิเคราะห์ผลอัตโนมัติ")
+st.write("ระบบรวมข้อมูล (Clean & Merge) อัตโนมัติ")
 st.markdown("---")
 
 # --- 3. Sidebar ---
@@ -34,25 +29,36 @@ if files:
     all_data = []
     for f in files:
         try:
+            # อ่านไฟล์
             df = pd.read_excel(f) if f.name.endswith('.xlsx') else pd.read_csv(f)
+            
+            # --- [ ส่วนเพิ่มพลัง: Clean Unnamed Columns ] ---
+            # 1. ลบคอลัมน์ที่เป็น Unnamed (ไม่มีชื่อ) ทิ้งไป
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+            
+            # 2. ลบแถวที่ว่างเปล่าทั้งหมด (Empty Rows)
+            df = df.dropna(how='all')
+            
             all_data.append(df)
         except Exception as e:
             st.sidebar.error(f"Error: {f.name}")
     
     if all_data:
+        # รวมไฟล์
         df_final = pd.concat(all_data, ignore_index=True)
         
         # 4. Metrics Cards
         col1, col2, col3 = st.columns(3)
         col1.metric("📂 จำนวนไฟล์", f"{len(files)}")
-        col2.metric("📝 รายการทั้งหมด", f"{len(df_final):,}")
+        col2.metric("📝 รายการทั้งหมด (Cleaned)", f"{len(df_final):,}")
         
+        # กรองเอาเฉพาะคอลัมน์ตัวเลขจริงๆ มาคำนวณ
         nums = df_final.select_dtypes(include=['number']).columns
         if len(nums) > 0:
             col3.metric(f"💰 ยอดรวม ({nums[0]})", f"{df_final[nums[0]].sum():,.0f}")
 
         # 5. Tabs
-        t1, t2 = st.tabs(["📉 กราฟวิเคราะห์", "📋 ตารางข้อมูล"])
+        t1, t2 = st.tabs(["📉 กราฟวิเคราะห์", "📋 ตารางข้อมูลที่ Clean แล้ว"])
         
         with t1:
             c1, c2 = st.columns(2)
@@ -66,8 +72,10 @@ if files:
                 st.plotly_chart(fig_pie, use_container_width=True)
         
         with t2:
+            st.subheader("พรีวิวข้อมูล (ลบคอลัมน์ Unnamed ออกให้แล้ว)")
             st.dataframe(df_final, use_container_width=True)
+            
             csv = df_final.to_csv(index=False).encode('utf-8')
-            st.download_button("💾 ดาวน์โหลดไฟล์รวม (CSV)", data=csv, file_name='data_export.csv')
+            st.download_button("💾 ดาวน์โหลดไฟล์รวมที่สะอาดแล้ว (CSV)", data=csv, file_name='cleaned_data.csv')
 else:
-    st.info("👈 เริ่มต้นโดยการอัปโหลดไฟล์ที่แถบด้านข้าง")
+    st.info("👈 กรุณาอัปโหลดไฟล์ที่แถบด้านข้าง (ระบบจะลบคอลัมน์ Unnamed ให้อัตโนมัติ)")
