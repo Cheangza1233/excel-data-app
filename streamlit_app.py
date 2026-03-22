@@ -93,7 +93,7 @@ if uploaded_files:
             t1, t2, t3 = st.tabs(["📉 กราฟวิเคราะห์", "🔍 เจาะลึกตาราง", "📥 ดาวน์โหลด"])
 
             with t1:
-                    st.subheader("Visual Analysis")
+                st.subheader("Visual Analysis")
                 c1, c2 = st.columns([1, 1])
                 
                 with c1:
