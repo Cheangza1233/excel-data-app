@@ -2,45 +2,94 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Excel Master Web App", layout="wide")
+# --- 1. การตั้งค่าหน้าตาเว็บ (UI Configuration) ---
+st.set_page_config(
+    page_title="Excel Pro Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-st.title("🚀 Web App รวมไฟล์ & Dashboard อัตโนมัติ")
-st.write("โยนไฟล์ Excel/CSV หลายๆ ไฟล์ลงที่นี่ เพื่อรวมข้อมูลและดูรีพอร์ตทันที")
+# Custom CSS เพื่อปรับแต่ง UI ให้ดูทันสมัย
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7f9;
+    }
+    .stMetric {
+        background-color: #ffffff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    div[data-testid="stExpander"] {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: white;
+    }
+    </style>
+    """, unsafe_allow_status=True)
 
-# 1. อัปโหลดไฟล์ (รองรับหลายไฟล์)
-uploaded_files = st.file_uploader("เลือกไฟล์ที่ต้องการรวม", accept_multiple_files=True, type=['xlsx', 'csv', 'txt'])
+# --- 2. ส่วนหัวแอป (Header Section) ---
+with st.container():
+    st.title("📊 Smart Data Master")
+    st.subheader("เปลี่ยนข้อมูลรกๆ ให้เป็น Dashboard ในคลิกเดียว")
+    st.markdown("---")
+
+# --- 3. ส่วนการทำงานหลัก (Sidebar & Upload) ---
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/732/732220.png", width=50) # Icon Excel
+st.sidebar.header("⚙️ เมนูควบคุม")
+
+uploaded_files = st.sidebar.file_uploader(
+    "อัปโหลดไฟล์ (Excel/CSV/TXT)", 
+    accept_multiple_files=True, 
+    help="คุณสามารถลากไฟล์หลายๆ ไฟล์มาวางพร้อมกันได้เลย"
+)
 
 if uploaded_files:
-    all_data = []
-    for file in uploaded_files:
-        if file.name.endswith('.xlsx'):
-            df = pd.read_excel(file)
-        else:
-            df = pd.read_csv(file)
-        all_data.append(df)
-    
-    # 2. รวมข้อมูล (เหมือน Power Query Append)
-    combined_df = pd.concat(all_data, ignore_index=True)
-    
-    st.success(f"✅ รวมไฟล์สำเร็จ! พบข้อมูลทั้งหมด {len(combined_df)} แถว")
+    with st.spinner('กำลังประมวลผลข้อมูล...'):
+        all_data = []
+        for file in uploaded_files:
+            try:
+                if file.name.endswith('.xlsx'):
+                    df = pd.read_excel(file)
+                else:
+                    df = pd.read_csv(file)
+                all_data.append(df)
+            except Exception as e:
+                st.error(f"ไม่สามารถอ่านไฟล์ {file.name} ได้: {e}")
+        
+        if all_data:
+            combined_df = pd.concat(all_data, ignore_index=True)
+            
+            # ส่วนตัวกรองข้อมูล (Filters)
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("🎯 กรองข้อมูล")
+            filter_col = st.sidebar.selectbox("เลือกหัวข้อที่จะกรอง:", combined_df.columns)
+            unique_vals = combined_df[filter_col].unique()
+            selected_vals = st.sidebar.multiselect(f"ระบุ {filter_col}:", options=unique_vals, default=unique_vals)
+            
+            # กรองข้อมูล
+            final_df = combined_df[combined_df[filter_col].isin(selected_vals)]
 
-    # 3. ส่วน Dashboard แบบง่าย
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("📊 พรีวิวข้อมูลที่รวมแล้ว")
-        st.dataframe(combined_df.head(10))
-    
-    with col2:
-        st.subheader("📈 วิเคราะห์เบื้องต้น")
-        # ตัวอย่างกราฟ (ปรับเปลี่ยนตามชื่อ Column ของคุณได้)
-        column_to_plot = st.selectbox("เลือก Column ที่ต้องการดูกราฟ", combined_df.columns)
-        fig = px.histogram(combined_df, x=column_to_plot)
-        st.plotly_chart(fig)
+            # --- 4. ส่วนแสดงผล (Main Dashboard) ---
+            
+            # แสดงตัวเลขสำคัญ (KPI Metrics) แบบการ์ด
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("📂 จำนวนไฟล์", len(uploaded_files))
+            m2.metric("📝 รายการทั้งหมด", f"{len(final_df):,}")
+            
+            num_cols = final_df.select_dtypes(include=['number']).columns
+            if len(num_cols) > 0:
+                m3.metric("💰 ยอดรวมหลัก", f"{final_df[num_cols[0]].sum():,.0f}")
+                m4.metric("📈 ค่าเฉลี่ย", f"{final_df[num_cols[0]].mean():,.0f}")
+            else:
+                m3.metric("💰 ยอดรวมหลัก", "N/A")
+                m4.metric("📈 ค่าเฉลี่ย", "N/A")
 
-    # 4. ปุ่มดาวน์โหลดไฟล์ที่รวมเสร็จแล้ว
-    st.download_button(
-        label="📥 ดาวน์โหลดไฟล์ที่รวมแล้ว (Excel)",
-        data=combined_df.to_csv(index=False).encode('utf-8'),
-        file_name='combined_data.csv',
-        mime='text/csv',
-    )
+            st.markdown("###") # เว้นระยะห่าง
+
+            # ส่วนกราฟและตาราง (Tabs)
+            t1, t2, t3 = st.tabs(["📉 กราฟวิเคราะห์", "🔍 เจาะลึกตาราง", "📥 ดาวน์โหลด"])
+
+            with t1:
